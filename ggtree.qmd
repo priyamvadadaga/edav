@@ -1,0 +1,68 @@
+---
+title: "ggtree tutorial"
+author: Priyamvada Daga (psd2127)
+format:
+  html:
+    embed-resources: true
+execute: 
+  echo: true
+---
+
+## Introduction + Motivation
+
+The `ggtree` package is useful for visualizing and annotating phylogenetic trees. It's built on top of `ggplot2` and has various functions to customize and enhance tree graphics. 
+
+The driving factor is the difficulties I've faced plotting trees, specifically annotated trees, in software like Python. R, via ggtree, provides a neat way of plotting phylogenetic trees, which are a great data visualization tool in the bioinformatics domain.
+
+
+## Basic features
+```{r}
+library(ape)       # reading, writing, plotting, and manipulating phylogenetic trees
+library(ggplot2)
+library(ggtree)
+library(dplyr)
+```
+
+```{r}
+t <- rtree(20)
+
+ggtree(t)
+ggtree(t, color="salmon", size=1, linetype="dashed")
+ggtree(t, branch.length="none")
+```
+
+
+## Example
+```{r}
+newick <- "(((((Ruminococcus:1,(prausnitzii:1)Faecalibacterium:1,Oscillospira:1)Ruminococcaceae:1,(SMB53:1,Clostridium:1)Clostridiaceae:1,(Lachnospira:1,(faecis:1)Roseburia:1,Dorea:1,Blautia:1,(gnavus:1)[Ruminococcus]:1,Anaerostipes:1,(eutactus:1)Coprococcus:1)Lachnospiraceae:1,Peptostreptococcaceae:1,(Peptococcus:1)Peptococcaceae:1)Clostridiales:1)Clostridia:1,((((ruminis:1)Lactobacillus:1)Lactobacillaceae:1,(Lactococcus:1,Streptococcus:1)Streptococcaceae:1)Lactobacillales:1)Bacilli:1,(((Bulleidia:1,(dolichum:1)[Eubacterium]:1)Erysipelotrichaceae:1)Erysipelotrichales:1)Erysipelotrichi:1)Firmicutes:1,((((Erwinia:1)Enterobacteriaceae:1)Enterobacteriales:1,(((parainfluenzae:1)Haemophilus:1,Actinobacillus:1)Pasteurellaceae:1)Pasteurellales:1,((Acinetobacter:1)Moraxellaceae:1)Pseudomonadales:1)Gammaproteobacteria:1,(((Sutterella:1)Alcaligenaceae:1)Burkholderiales:1)Betaproteobacteria:1)Proteobacteria:1,(((((ovatus:1,uniformis:1)Bacteroides:1)Bacteroidaceae:1,((copri:1)Prevotella:1)Prevotellaceae:1,((distasonis:1)Parabacteroides:1)Porphyromonadaceae:1,S24-7:1,[Barnesiellaceae]:1)Bacteroidales:1)Bacteroidia:1)Bacteroidetes:1,((RF39:1)Mollicutes:1)Tenericutes:1,(((((lenta:1)Eggerthella:1)Coriobacteriaceae:1)Coriobacteriales:1)Coriobacteriia:1)Actinobacteria:1)Bacteria:1;"
+# newick <- gsub("\\[|\\]", "", newick)
+tree <- read.tree(text = newick)
+
+color_df <- read.csv("colors.csv")
+color_df <- color_df %>%
+  mutate(color = ifelse(color == "Mixed", "#808080", color))
+
+tree_data <- as_tibble(tree)
+
+tree_data <- tree_data %>%
+  left_join(color_df, by = c("label" = "id"))
+```
+
+```{r}
+#| fig-width: 14
+#| fig-height: 8
+ggtree(tree, layout="fan") %<+% tree_data +
+  geom_point(aes(color = coalesce(color, "#808080"), size = coalesce(weight, 1)), shape = 16, alpha = 0.5) +
+  geom_tree(aes(color = coalesce(color, "#808080")), layout="fan") +
+  geom_tiplab(aes(color = coalesce(color, "#808080")), size = 3, hjust=0.05, vjust = -0.3) +
+  geom_nodelab(aes(label = label, color = coalesce(color, "#808080")), size = 3, hjust = 0, vjust = -0.3) +
+  theme_minimal() +
+  scale_color_identity() +
+  scale_x_continuous(
+    breaks = 0:6,
+    labels = c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+  ) +
+  scale_size_continuous(
+    guide = "none"
+  )
+```
